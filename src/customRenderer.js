@@ -17,6 +17,10 @@ const hostConfig = {
             } else if (propName !== 'children' && propName !== 'className' && propName !== 'style') {
                 // 处理普通属性
                 element.setAttribute(propName, props[propName]);
+            } else if (propName === 'children') {
+                if (typeof props[propName] === 'string' || typeof props[propName] === 'number') {
+                    element.textContent = props[propName];
+                }
             }
         });
 
@@ -39,6 +43,15 @@ const hostConfig = {
 
     appendChildToContainer(container, child) {
         container.appendChild(child);
+    },
+
+    // 新增：插入节点
+    insertBefore(parentInstance, child, beforeChild) {
+        parentInstance.insertBefore(child, beforeChild);
+    },
+
+    insertInContainerBefore(container, child, beforeChild) {
+        container.insertBefore(child, beforeChild);
     },
 
     // 节点移除操作
@@ -85,6 +98,11 @@ const hostConfig = {
         textInstance.nodeValue = newText;
     },
 
+    // 设置文本内容的接口
+    setTextContent(node, text) {
+        node.textContent = text;
+    },
+
     // 根节点配置
     getRootHostContext(rootContainerInstance) {
         return {};
@@ -97,7 +115,7 @@ const hostConfig = {
     shouldSetTextContent(type, props) {
         return typeof props.children === 'string' || typeof props.children === 'number';
     },
-    
+
     // 清除容器内容
     clearContainer(container) {
         while (container.firstChild) {
@@ -109,7 +127,7 @@ const hostConfig = {
     supportsMutation: true,
     supportsHydration: false,
     supportsPersistence: false,
-    
+
     // 时间调度相关
     now: Date.now,
     scheduleDeferredCallback: window.requestIdleCallback || setTimeout,
@@ -117,8 +135,23 @@ const hostConfig = {
 
     // 这些都是需要提供的空方法
     prepareForCommit() { return null; },
-    resetAfterCommit() {},
-    commitMount() {}
+    resetAfterCommit() { },
+    finalizeInitialChildren(instance, type, props, rootContainerInstance, hostContext) {
+        // 处理需要在初始渲染后执行的操作
+        // 例如，如果需要自动聚焦
+        if (props.autoFocus && (type === 'input' || type === 'textarea')) {
+            return true;
+        }
+        return false;
+    },
+
+    // 如果返回了 true，则需要实现此函数
+    commitMount(instance, type, newProps, internalInstanceHandle) {
+        // 只有当 finalizeInitialChildren 返回 true 时才会被调用
+        if (newProps.autoFocus) {
+            instance.focus();
+        }
+    },
 };
 
 export const renderer = ReactReconciler(hostConfig);
